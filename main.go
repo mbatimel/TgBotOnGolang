@@ -1,7 +1,9 @@
 package main
 
 import (
+	commands "example/main/Commands"
 	"log"
+	"sync"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -10,10 +12,12 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+	wg := new(sync.WaitGroup)
 
 	bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+	
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -27,12 +31,28 @@ func main() {
 		if update.Message == nil { 
 			continue
 		}
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID,update.Message.Text)
 
-		log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
+		if update.Message.IsCommand() { 
+			wg.Add(1)
+			
+			go func() {
+				defer wg.Done()
+				//тут у меня бот отвечает на команды
+				msg.Text =  commands.CheckCommand(update.Message.Command())
+			}()
+			wg.Wait()
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
+        }else{
+			//тут будет ответ на простые вопросы пользователя
+			log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
+			msg.ReplyToMessageID = update.Message.MessageID
+		}
 
-		bot.Send(msg)
+        if _, err := bot.Send(msg); err != nil {
+            log.Panic(err)
+        }
+		
 	}
 }
+
