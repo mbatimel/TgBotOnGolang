@@ -3,7 +3,7 @@ package main
 import (
 	commands "example/main/Commands"
 	butoms "example/main/Buttons"
-	openai "example/main/OpenAI"
+	//openai "example/main/OpenAI"
 	"log"
 	"sync"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -12,7 +12,7 @@ import (
 
 func main() {
 	var buttons bool
-	bot, err := tgbotapi.NewBotAPI("ТОКЕН БОТА!!!!")
+	bot, err := tgbotapi.NewBotAPI("5337023432:AAGWQ7HDN8mLTYGkeg8WbEdGefCnRuylHSw")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -48,8 +48,9 @@ func main() {
 
         }else{
 			log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
-			response := openai.MessagefromGPT(update.Message.Text)
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, response)
+			msg.ReplyToMessageID = update.Message.MessageID
+			// response := openai.MessagefromGPT(update.Message.Text)
+			// msg = tgbotapi.NewMessage(update.Message.Chat.ID, response)
 		}
 
 
