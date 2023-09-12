@@ -4,9 +4,11 @@ import (
 	commands "example/main/Commands"
 	butoms "example/main/Buttons"
 	//openai "example/main/OpenAI"
+	BD "example/main/DataBase"
 	"log"
 	"sync"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	
 )
 
 type UserState struct {
@@ -46,7 +48,7 @@ func main() {
 			continue
 		}
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,update.Message.Text)
-
+		
 		if update.Message.IsCommand() { 
 			wg.Add(1)
 			go func() {
@@ -59,13 +61,24 @@ func main() {
         }else{
 			switch userStates[update.Message.From.ID] {
 			case StateAwaitingURL:
-				//url := update.Message.Text
-				// здесь можете сделать проверку ссылки и т.д.
-				// ...
+				url := update.Message.Text
+				if !BD.IsAccessibleURL(url){
+					msg.Text = "это не ссылка"
+				}else{
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+							if BD.ConnectedForDB(url){
+							msg.Text = "ссылку принял..."
+						}else{
+							msg.Text = "я не смог сохранить себе 😿"
+						}
+					}()
+					wg.Wait()
+				}
 				userStates[update.Message.From.ID] = StateNone
-				msg.Text = "ссылку принял..."
-			default:
 				
+			default:
 				log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
 				msg.ReplyToMessageID = update.Message.MessageID
 				// response := openai.MessagefromGPT(update.Message.Text)
