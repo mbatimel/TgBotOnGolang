@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
+    constants "example/main/Constants"
 	//	"net/http"
 	"log"
 
@@ -13,52 +13,46 @@ import (
 )
 
 
-const (
-    host     = "localhost"
-    port     = 5433
-    user     = "postgres"
-    password = "tatarin17"
-    dbname   = "postgres"
-)
- func inserturl(url string, db *sql.DB) bool{
-	// insert
-    // dynamic
+
+ func inserturl(url string, db *sql.DB) int{
+
 	log.Println("\n"+url+"\n")
     insertDynStmt := `insert into "linkforbyobject"("datetyme", "linkforcite") values($1, $2)`
     _, err := db.Exec(insertDynStmt, time.Now(), url)
 	if err != nil {
         log.Print("\n",err)
-		return false
+		return constants.ErrorFromDB
     }
-	return true
+	return constants.OperationDone
  }
-func ConnectedForDB(url string ) bool {
+func ConnectedForDB(url string ) int {
 	
+    psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", constants.Host, constants.Port, constants.User, constants.Password, constants.Dbname)
        
-	// connection string
-    psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-       
-	// open database
     db, err := sql.Open("postgres", psqlconn)
     if err != nil {
         log.Print("\n",err)
-		return  false
-    }
-        
-	// close database
+		return  constants.ErrorFromDB
+    }  
+	
     defer db.Close()
     log.Println("Connected!")
 	
-	// insert
-    // dynamic
-	return inserturl(url, db)
+    checkResult := CheckUrlInDB(url, db)
+    switch checkResult {
+    case constants.ThereIsNoLink:
+        return inserturl(url, db)
+    case constants.LinkIsAlreadyThere:
+        return constants.LinkIsAlreadyThere
+    case constants.ErrorFromDB:
+        return constants.ErrorFromDB
+    }
+
+	
 
 
 
-	// 	// update
-	// updateStmt := `update "Students" set "Name"=$1, "Roll_Number"=$2 where "id"=$3`
-	// _, err = db.Exec(updateStmt, "Rachel", 24, 8)
-//  panic = CheckError(err)
+
 	// 	// Delete
 	// deleteStmt := `delete from "Students" where id=$1`
 	// _, err = db.Exec(deleteStmt, 1)
@@ -78,7 +72,7 @@ func ConnectedForDB(url string ) bool {
 // 	}
 	
 // panic = CheckError(err)
-	
+	return 1
 }
 
 func IsAccessibleURL(url string) bool {
@@ -95,4 +89,22 @@ func IsAccessibleURL(url string) bool {
     defer resp.Body.Close()
 
     return resp.StatusCode == 200
+}
+func CheckUrlInDB(url string, db *sql.DB ) int {
+    sqlStmt := `SELECT linkforcite FROM linkforbyobject WHERE linkforcite = $1`
+    var foundURL string
+    err := db.QueryRow(sqlStmt, url).Scan(&foundURL)
+
+    if err != nil {
+        if err == sql.ErrNoRows {
+            // URL не найден в базе данных
+            return constants.ThereIsNoLink
+        }
+        // Произошла ошибка при выполнении запроса
+        log.Print(err)
+        return constants.ErrorFromDB
+    }
+
+    // URL найден в базе данных
+    return constants.LinkIsAlreadyThere
 }

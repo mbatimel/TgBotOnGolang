@@ -68,10 +68,12 @@ func main() {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-							if BD.ConnectedForDB(url){
+							if BD.ConnectedForDB(url) == 1{
 							msg.Text = "ссылку принял..."
-						}else{
+						}else if BD.ConnectedForDB(url) == 404{
 							msg.Text = "я не смог сохранить себе 😿"
+						}else if BD.ConnectedForDB(url) == 505 {
+							msg.Text = "у меня уже есть эта ссылка"
 						}
 					}()
 					wg.Wait()
