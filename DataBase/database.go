@@ -6,15 +6,13 @@ import (
 	"net/http"
 	"time"
     constants "example/main/Constants"
-	//	"net/http"
 	"log"
-
 	_ "github.com/lib/pq"
 )
 
 
 
- func inserturl(url string, db *sql.DB) int{
+func inserturl(url string, db *sql.DB) int{
 
 	log.Println("\n"+url+"\n")
     insertDynStmt := `insert into "linkforbyobject"("datetyme", "linkforcite") values($1, $2)`
@@ -25,7 +23,18 @@ import (
     }
 	return constants.OperationDone
  }
-func ConnectedForDB(url string ) int {
+func deleteurl(url string, db *sql.DB) int{
+    		// Delete
+	deleteStmt := `delete from "linkforbyobject" where linkforcite=$1`
+	_, err := db.Exec(deleteStmt, url)
+	if err != nil {
+        log.Print("\n",err)
+		return constants.ErrorFromDB
+    }
+    return constants.OperationDone
+  
+ }
+func ConnectedForDB(url string, state string) int {
 	
     psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", constants.Host, constants.Port, constants.User, constants.Password, constants.Dbname)
        
@@ -39,40 +48,31 @@ func ConnectedForDB(url string ) int {
     log.Println("Connected!")
 	
     checkResult := CheckUrlInDB(url, db)
-    switch checkResult {
-    case constants.ThereIsNoLink:
-        return inserturl(url, db)
-    case constants.LinkIsAlreadyThere:
-        return constants.LinkIsAlreadyThere
-    case constants.ErrorFromDB:
-        return constants.ErrorFromDB
-    }
+        switch state{
+        case constants.StateAwaitingURL:
+                switch checkResult {
+                case constants.ThereIsNoLink:
+                    return inserturl(url, db)
+                case constants.LinkIsAlreadyThere:
+                    return constants.LinkIsAlreadyThere
+                case constants.ErrorFromDB:
+                    return constants.ErrorFromDB
+                }
+        case constants.StateAwaitingURLForDelete:
+                switch checkResult {
+                case constants.ThereIsNoLink:
+                    return constants.ThereIsNoLink
+                case constants.LinkIsAlreadyThere:
+                    return  deleteurl(url, db)
+                case constants.ErrorFromDB:
+                    return constants.ErrorFromDB
+                }
+        }
 
+
+    
 	
-
-
-
-
-	// 	// Delete
-	// deleteStmt := `delete from "Students" where id=$1`
-	// _, err = db.Exec(deleteStmt, 1)
-	// panic = CheckError(err)
-	// //возвразение значений из бд
-// 		rows, err := db.Query(`SELECT "Name", "Roll_Number" FROM "Students"`)
-// panic = CheckError(err)	
-// 	defer rows.Close()
-// 	for rows.Next() {
-// 		var name string
-// 		var roll_number int
-	
-// 		err = rows.Scan(&name, &roll_number)
-// 		CheckError(err)
-	
-// 		fmt.Println(name, roll_number)
-// 	}
-	
-// panic = CheckError(err)
-	return 1
+	return 0
 }
 
 func IsAccessibleURL(url string) bool {

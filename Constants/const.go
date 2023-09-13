@@ -10,4 +10,8 @@ const (
     OperationDone = 1
     LinkIsAlreadyThere = 505
     ThereIsNoLink = 300
+	StateNone        = "none"
+    StateAwaitingURL = "awaiting_url"
+	StateAwaitingURLForDelete = "awaiting_url_for_delete"
+	StateReturnAllUrl = "return_all_url"
 )

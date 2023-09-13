@@ -8,7 +8,8 @@ import (
 	"log"
 	"sync"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	
+	constants "example/main/Constants"
+
 )
 
 type UserState struct {
@@ -16,10 +17,7 @@ type UserState struct {
     State  string
 }
 
-const (
-    StateNone        = "none"
-    StateAwaitingURL = "awaiting_url"
-)
+
 
 func main() {
 	var userStates = make(map[int]string) 
@@ -60,7 +58,7 @@ func main() {
 
         }else{
 			switch userStates[update.Message.From.ID] {
-			case StateAwaitingURL:
+			case constants.StateAwaitingURL:
 				url := update.Message.Text
 				if !BD.IsAccessibleURL(url){
 					msg.Text = "это не ссылка"
@@ -68,17 +66,37 @@ func main() {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-							if BD.ConnectedForDB(url) == 1{
+							if BD.ConnectedForDB(url,constants.StateAwaitingURL) == 1{
 							msg.Text = "ссылку принял..."
-						}else if BD.ConnectedForDB(url) == 404{
+						}else if BD.ConnectedForDB(url,constants.StateAwaitingURL) == 404{
 							msg.Text = "я не смог сохранить себе 😿"
-						}else if BD.ConnectedForDB(url) == 505 {
+						}else if BD.ConnectedForDB(url,constants.StateAwaitingURL) == 505 {
 							msg.Text = "у меня уже есть эта ссылка"
 						}
 					}()
 					wg.Wait()
 				}
-				userStates[update.Message.From.ID] = StateNone
+				userStates[update.Message.From.ID] = constants.StateNone
+			case constants.StateAwaitingURLForDelete:
+				url := update.Message.Text
+				if !BD.IsAccessibleURL(url){
+					msg.Text = "это не ссылка"
+				}else{
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+							if BD.ConnectedForDB(url,constants.StateAwaitingURLForDelete) == 1{
+							msg.Text = "Удалил)"
+						}else if BD.ConnectedForDB(url,constants.StateAwaitingURLForDelete) == 404{
+							msg.Text = "я не смог удалить, у меня проблемы😿"
+						}else if BD.ConnectedForDB(url,constants.StateAwaitingURLForDelete) == 300 {
+							msg.Text = "Ссылка не найдена"
+						}
+					}()
+					wg.Wait()
+				}
+				userStates[update.Message.From.ID] = constants.StateNone
+			case constants.StateReturnAllUrl:
 				
 			default:
 				log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
