@@ -9,6 +9,7 @@ import (
 	"sync"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	constants "example/main/Constants"
+	img "example/main/Img"
 
 )
 
@@ -56,7 +57,13 @@ func main() {
 			}()
 			wg.Wait()
 
-        }else{
+        }else if update.Message.Photo != nil{
+			//работа с фотографиями
+			photo := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, tgbotapi.FileBytes(img.SendPhoto()))
+			if _, err = bot.Send(photo); err != nil {
+				log.Fatalln(err)
+			}		
+		} else{
 			switch userStates[update.Message.From.ID] {
 			case constants.StateAwaitingURL:
 				url := update.Message.Text
@@ -96,7 +103,7 @@ func main() {
 					wg.Wait()
 				}
 				userStates[update.Message.From.ID] = constants.StateNone
-			case constants.StateReturnAllUrl:
+			case constants.StateReturnAllUrl:// тут должен возвращаться полный список всех ссылок
 				
 			default:
 				log.Printf("[%s]/n %s/n", update.Message.From.UserName, update.Message.Text)
@@ -106,9 +113,8 @@ func main() {
 			}
 		}
 
-
         if _, err := bot.Send(msg); err != nil {
-            log.Panic(err)
+            log.Print(err)
         }
 		
 	}
