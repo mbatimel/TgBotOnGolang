@@ -1,16 +1,18 @@
 package main
 
 import (
-	commands "example/main/Commands"
 	butoms "example/main/Buttons"
+	commands "example/main/Commands"
+
 	//openai "example/main/OpenAI"
+	constants "example/main/Constants"
 	BD "example/main/DataBase"
+	img "example/main/Img"
+	vc "example/main/VoiceParser"
 	"log"
 	"sync"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	constants "example/main/Constants"
-	img "example/main/Img"
 
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type UserState struct {
@@ -56,13 +58,32 @@ func main() {
 				msg.ReplyMarkup = butoms.OpenOrCloseButton(buttons)
 			}()
 			wg.Wait()
+			
 
-        }else if update.Message.Photo != nil{
-			//работа с фотографиями
+        }else if voice := update.Message.Voice; voice != nil {
+			err := vc.DownloadFile(bot, voice.FileID, "VoiceParser/storageForvoice/voice.m4a")
+			if err != nil {
+				log.Printf("Error downloading voice message: %v", err)
+			} else {
+				log.Printf("Voice message saved as voice.m4a")
+			}
+			voice, err := vc.ReturnText()
+			if err != nil {
+				log.Print(err)
+			} 
+			msg.Text = voice.(string)
+			
+		}else if update.Message.Animation != nil || update.Message.Sticker != nil{
+			
+			msg.Text = "Ну ты и пидорас"
+		} else if update.Message.Photo != nil{
+			
 			photo := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, tgbotapi.FileBytes(img.SendPhoto()))
 			if _, err = bot.Send(photo); err != nil {
 				log.Fatalln(err)
-			}		
+			}
+			msg.Text = "Ну на тогда"
+			
 		} else{
 			switch userStates[update.Message.From.ID] {
 			case constants.StateAwaitingURL:
@@ -111,11 +132,11 @@ func main() {
 				// response := openai.MessagefromGPT(update.Message.Text)
 				// msg = tgbotapi.NewMessage(update.Message.Chat.ID, response)
 			}
+			
 		}
-
-        if _, err := bot.Send(msg); err != nil {
-            log.Print(err)
-        }
+		if _, err := bot.Send(msg); err != nil {
+						log.Print(err)
+					}
 		
 	}
 }
